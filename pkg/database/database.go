@@ -20,7 +20,7 @@ func initDB() {
 	config := mysql.Config{
 		User:                 "root",
 		Passwd:               "123456",
-		Addr:                 "172.18.40.9:3306",
+		Addr:                 "localhost:3306",
 		Net:                  "tcp",
 		DBName:               "goblog",
 		AllowNativePasswords: true,
