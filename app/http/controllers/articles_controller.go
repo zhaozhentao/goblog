@@ -3,7 +3,7 @@ package controllers
 import (
 	"database/sql"
 	"fmt"
-	"github.com/zhaozhentao/goblog/pkg/database"
+	"github.com/zhaozhentao/goblog/app/models/article"
 	"github.com/zhaozhentao/goblog/pkg/logger"
 	"github.com/zhaozhentao/goblog/pkg/route"
 	"github.com/zhaozhentao/goblog/pkg/types"
@@ -14,22 +14,10 @@ import (
 type ArticleController struct {
 }
 
-type Article struct {
-	Title, Body string
-	ID          int64
-}
-
-func getArticleByID(id string) (Article, error) {
-	article := Article{}
-	query := "SELECT * FROM articles WHERE id = ?"
-	err := database.DB.QueryRow(query, id).Scan(&article.ID, &article.Title, &article.Body)
-	return article, err
-}
-
 func (*ArticleController) Show(w http.ResponseWriter, r *http.Request) {
 	id := route.GetRouteVariable("id", r)
 
-	article, err := getArticleByID(id)
+	article, err := article.Get(id)
 
 	// 3. 如果出现错误
 	if err != nil {
