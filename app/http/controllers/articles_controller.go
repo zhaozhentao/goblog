@@ -1,12 +1,12 @@
 package controllers
 
 import (
-	"database/sql"
 	"fmt"
 	"github.com/zhaozhentao/goblog/app/models/article"
 	"github.com/zhaozhentao/goblog/pkg/logger"
 	"github.com/zhaozhentao/goblog/pkg/route"
 	"github.com/zhaozhentao/goblog/pkg/types"
+	"gorm.io/gorm"
 	"html/template"
 	"net/http"
 )
@@ -21,7 +21,7 @@ func (*ArticleController) Show(w http.ResponseWriter, r *http.Request) {
 
 	// 3. 如果出现错误
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if err == gorm.ErrRecordNotFound {
 			// 3.1 数据未找到
 			w.WriteHeader(http.StatusNotFound)
 			fmt.Fprint(w, "404 文章未找到")
@@ -43,3 +43,23 @@ func (*ArticleController) Show(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, article)
 	}
 }
+
+func (*ArticleController) Index(w http.ResponseWriter, r *http.Request) {
+	// 1. 执行查询语句，返回一个结果集
+	articles, err := article.GetAll()
+
+	if err != nil {
+		// 数据库错误
+		logger.LogError(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, "500 服务器内部错误")
+	} else {
+		// 2. 加载模板
+		tmpl, err := template.ParseFiles("resources/views/articles/index.gohtml")
+		logger.LogError(err)
+
+		// 3. 渲染模板，将所有文章的数据传输进去
+		tmpl.Execute(w, articles)
+	}
+}
+
