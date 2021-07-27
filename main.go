@@ -3,7 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
-	"github.com/go-sql-driver/mysql"
+	"github.com/zhaozhentao/goblog/pkg/database"
 	"github.com/zhaozhentao/goblog/pkg/logger"
 	"github.com/zhaozhentao/goblog/pkg/route"
 	"github.com/zhaozhentao/goblog/pkg/types"
@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"time"
 	"unicode/utf8"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -20,35 +19,7 @@ import (
 )
 
 var router *mux.Router
-
 var db *sql.DB
-
-func initDB() {
-	var err error
-	config := mysql.Config{
-		User:                 "root",
-		Passwd:               "123456",
-		Addr:                 "172.18.40.9:3306",
-		Net:                  "tcp",
-		DBName:               "goblog",
-		AllowNativePasswords: true,
-	}
-
-	// 准备数据库连接池
-	db, err = sql.Open("mysql", config.FormatDSN())
-	logger.LogError(err)
-
-	// 设置最大连接数
-	db.SetMaxOpenConns(25)
-	// 设置最大空闲连接数
-	db.SetMaxIdleConns(25)
-	// 设置每个链接的过期时间
-	db.SetConnMaxLifetime(5 * time.Minute)
-
-	// 尝试连接，失败会报错
-	err = db.Ping()
-	logger.LogError(err)
-}
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprint(w, "<h1>Hello, 欢迎来到 goblog！</h1>")
@@ -80,7 +51,7 @@ func (a Article) Link() string {
 }
 
 func (a Article) Delete() (rowsAffected int64, err error) {
-	rs, err := db.Exec("DELETE FROM articles WHERE id = " + strconv.FormatInt(a.ID, 10))
+	rs, err := database.DB.Exec("DELETE FROM articles WHERE id = " + strconv.FormatInt(a.ID, 10))
 
 	if err != nil {
 		return 0, err
@@ -229,17 +200,6 @@ func articlesCreateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tmpl.Execute(w, data)
-}
-
-func createTables() {
-	createArticlesSQL := `CREATE TABLE IF NOT EXISTS articles(
-		id bigint(20) PRIMARY KEY AUTO_INCREMENT NOT NULL,
-		title varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL,
-		body longtext COLLATE utf8mb4_unicode_ci
-	); `
-
-	_, err := db.Exec(createArticlesSQL)
-	logger.LogError(err)
 }
 
 func saveArticleToDB(title string, body string) (int64, error) {
@@ -444,8 +404,8 @@ func articlesDeleteHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	initDB()
-	createTables()
+	database.Initialize()
+	db = database.DB
 
 	route.Initialize()
 	router = route.Router
