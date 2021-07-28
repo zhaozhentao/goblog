@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 	"github.com/zhaozhentao/goblog/app/models/user"
-	requests "github.com/zhaozhentao/goblog/app/request"
+	requests "github.com/zhaozhentao/goblog/app/requests"
 	"github.com/zhaozhentao/goblog/pkg/view"
 	"net/http"
 )
