@@ -3,6 +3,7 @@ package routes
 import (
 	"github.com/gorilla/mux"
 	"github.com/zhaozhentao/goblog/app/http/controllers"
+	"github.com/zhaozhentao/goblog/app/http/middlewares"
 	"net/http"
 )
 
@@ -29,5 +30,10 @@ func RegisterWebRoutes(r *mux.Router) {
 	auc := new(controllers.AuthController)
 	r.HandleFunc("/auth/register", auc.Register).Methods("GET").Name("auth.register")
 	r.HandleFunc("/auth/do-register", auc.DoRegister).Methods("POST").Name("auth.doregister")
+
+	r.HandleFunc("/auth/login", auc.Login).Methods("GET").Name("auth.login")
+	r.HandleFunc("/auth/dologin", auc.DoLogin).Methods("POST").Name("auth.dologin")
+
 	//r.Use(middlewares.ForceHTML)
+	r.Use(middlewares.StartSession)
 }
