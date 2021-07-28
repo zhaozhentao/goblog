@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"github.com/zhaozhentao/goblog/app/models/article"
+	"github.com/zhaozhentao/goblog/app/requests"
 	"github.com/zhaozhentao/goblog/pkg/logger"
 	"github.com/zhaozhentao/goblog/pkg/route"
 	"github.com/zhaozhentao/goblog/pkg/view"
@@ -81,29 +82,33 @@ func validateArticleFormData(title string, body string) map[string]string {
 	return errors
 }
 
+// Store 文章创建页面
 func (*ArticleController) Store(w http.ResponseWriter, r *http.Request) {
-	title := r.PostFormValue("title")
-	body := r.PostFormValue("body")
+	// 1. 初始化数据
+	_article := article.Article{
+		Title: r.PostFormValue("title"),
+		Body:  r.PostFormValue("body"),
+	}
 
-	errors := validateArticleFormData(title, body)
+	// 2. 表单验证
+	errors := requests.ValidateArticleForm(_article)
 
-	// 检查是否有错误
+	// 3. 检测错误
 	if len(errors) == 0 {
-		_article := article.Article{
-			Title: title,
-			Body:  body,
-		}
+		// 创建文章
 		_article.Create()
 		if _article.ID > 0 {
-			fmt.Fprint(w, "插入成功，ID 为"+_article.GetStringID())
+			indexURL := route.Name2URL("articles.show", "id", _article.GetStringID())
+			http.Redirect(w, r, indexURL, http.StatusFound)
 		} else {
 			w.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(w, "创建文章失败，请联系管理员")
 		}
 	} else {
 		view.Render(w, view.D{
-			"Errors": errors,
-		}, "articles.create")
+			"Article": _article,
+			"Errors":  errors,
+		}, "articles.create", "articles._form_field")
 	}
 }
 
@@ -207,7 +212,7 @@ func (*ArticleController) Delete(w http.ResponseWriter, r *http.Request) {
 	id := route.GetRouteVariable("id", r)
 
 	// 2. 读取对应的文章数据
-	article, err := article.Get(id)
+	_article, err := article.Get(id)
 
 	// 3. 如果出现错误
 	if err != nil {
@@ -222,26 +227,40 @@ func (*ArticleController) Delete(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprint(w, "500 服务器内部错误")
 		}
 	} else {
-		// 4. 未出现错误，执行删除操作
-		rowsAffected, err := article.Delete()
+		// 4. 未出现错误
 
-		// 4.1 发生错误
-		if err != nil {
-			// 应该是 SQL 报错了
-			logger.LogError(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, "500 服务器内部错误")
-		} else {
-			// 4.2 未发生错误
-			if rowsAffected > 0 {
-				// 重定向到文章列表页
-				indexURL := route.Name2URL("articles.index")
-				http.Redirect(w, r, indexURL, http.StatusFound)
-			} else {
-				// Edge case
-				w.WriteHeader(http.StatusNotFound)
-				fmt.Fprint(w, "404 文章未找到")
+		// 4.1 表单验证
+		_article.Title = r.PostFormValue("title")
+		_article.Body = r.PostFormValue("body")
+
+		errors := requests.ValidateArticleForm(_article)
+
+		if len(errors) == 0 {
+
+			// 4.2 表单验证通过，更新数据
+			rowsAffected, err := _article.Update()
+
+			if err != nil {
+				// 数据库错误
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, "500 服务器内部错误")
+				return
 			}
+
+			// √ 更新成功，跳转到文章详情页
+			if rowsAffected > 0 {
+				showURL := route.Name2URL("articles.show", "id", id)
+				http.Redirect(w, r, showURL, http.StatusFound)
+			} else {
+				fmt.Fprint(w, "您没有做任何更改！")
+			}
+		} else {
+
+			// 4.3 表单验证不通过，显示理由
+			view.Render(w, view.D{
+				"Article": _article,
+				"Errors":  errors,
+			}, "articles.edit", "articles._form_field")
 		}
 	}
 }
