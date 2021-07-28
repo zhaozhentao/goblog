@@ -40,10 +40,10 @@ func (*AuthController) DoRegister(w http.ResponseWriter, r *http.Request) {
 		_user.Create()
 
 		if _user.ID > 0 {
-		    fmt.Fprint(w, "插入成功，ID 为"+_user.GetStringID())
+			fmt.Fprint(w, "插入成功，ID 为"+_user.GetStringID())
 		} else {
-		    w.WriteHeader(http.StatusInternalServerError)
-		    fmt.Fprint(w, "注册失败，请联系管理员")
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, "注册失败，请联系管理员")
 		}
 	}
 
@@ -52,7 +52,7 @@ func (*AuthController) DoRegister(w http.ResponseWriter, r *http.Request) {
 
 // Login 显示登录表单
 func (*AuthController) Login(w http.ResponseWriter, r *http.Request) {
-	view.RenderSimple(w, view.D{},  "auth.login")
+	view.RenderSimple(w, view.D{}, "auth.login")
 }
 
 // DoLogin 处理登录表单提交
@@ -72,4 +72,10 @@ func (*AuthController) DoLogin(w http.ResponseWriter, r *http.Request) {
 			"Email":    email,
 			"Password": password,
 		}, "auth.login")
-	}}
+	}
+}
+
+func (*AuthController) Logout(w http.ResponseWriter, r *http.Request) {
+	auth.Logout()
+	http.Redirect(w, r, "/", http.StatusFound)
+}
